@@ -8,8 +8,13 @@ using namespace websockets;
 // -----------------------------------------
 // Wi-Fi Credentials
 // -----------------------------------------
-const char* ssid     = "TELUS2F5D";
-const char* password = "XArZGnuY8vJs";
+const char* ssid     = "EPNet";
+const char* password = "electron";
+
+// Static IP Configuration
+IPAddress local_IP(192, 168, 0, 156);  // Set your desired static IP
+IPAddress gateway(192, 168, 0, 1);    // Set your network's gateway
+IPAddress subnet(255, 255, 255, 0);   // Set your subnet mask
 
 // -----------------------------------------
 // WebSocket Server
@@ -40,10 +45,6 @@ void initMCP4151() {
 
   // Initialize SPI on the chosen pins
   SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
-
-  // Set up ENABLE_PIN
-  pinMode(ENABLE_PIN, OUTPUT);
-  digitalWrite(ENABLE_PIN, LOW);  // Default LOW
 }
 
 // ------------------------------------------------------------
@@ -120,24 +121,24 @@ void handleWebSocketClient(WebsocketsClient& client) {
       else if (strcmp(command, "enable") == 0) {
         // Expect a boolean "value" (true/false)
         if (jsonDoc.containsKey("value") && jsonDoc["value"].is<bool>()) {
-          bool enableState = jsonDoc["value"];
+            bool enableState = jsonDoc["value"];
 
-          // Set Pin 15 HIGH or LOW
-          digitalWrite(ENABLE_PIN, enableState ? HIGH : LOW);
+            // Reverse logic: set Pin 15 LOW if enableState is true, HIGH if false
+            digitalWrite(ENABLE_PIN, enableState ? LOW : HIGH);
 
-          // Respond
-          StaticJsonDocument<100> response;
-          response["status"]  = "ok";
-          response["command"] = "enable";
-          response["value"]   = enableState;
+            // Respond
+            StaticJsonDocument<100> response;
+            response["status"]  = "ok";
+            response["command"] = "enable";
+            response["value"]   = enableState;
 
-          String responseString;
-          serializeJson(response, responseString);
-          client.send(responseString);
+            String responseString;
+            serializeJson(response, responseString);
+            client.send(responseString);
 
-          Serial.printf("Pin 15 (ENABLE_PIN) set to %s\n", enableState ? "HIGH" : "LOW");
+            Serial.printf("Pin 15 (ENABLE_PIN) set to %s\n", enableState ? "LOW" : "HIGH");
         } else {
-          Serial.println("Invalid or missing 'value' field in JSON");
+            Serial.println("Invalid or missing 'value' field in JSON");
         }
       }
       else if (strcmp(command, "getStatus") == 0) {
@@ -146,7 +147,7 @@ void handleWebSocketClient(WebsocketsClient& client) {
         response["status"]  = "ok";
         response["command"] = "getStatus";
         response["value"]   = currentValue;
-        response["enable"]  = digitalRead(ENABLE_PIN) == HIGH;
+        response["enable"]  = digitalRead(ENABLE_PIN) == LOW;
 
         String responseString;
         serializeJson(response, responseString);
@@ -193,17 +194,21 @@ void setup() {
   Serial.println("\nWiFi connected. IP address: ");
   Serial.println(WiFi.localIP());
 
-  // 2. Initialize SPI + MCP4151
+  // 2. Initialize ENABLE_PIN (independent from MCP4151)
+  pinMode(ENABLE_PIN, OUTPUT);
+  digitalWrite(ENABLE_PIN, LOW);  // Set initial state to LOW (default disabled)
+
+  // 3. Initialize SPI + MCP4151
   initMCP4151();
 
-  // Optional: set an initial wiper value
-  currentValue = 128;  // midscale
-  setMCP4151Wiper(currentValue);
+  // Optional: Log the initial enable state
+  Serial.println("ENABLE_PIN initialized to LOW (default disabled)");
 
-  // 3. Start WebSocket server
+  // 4. Start WebSocket server
   server.listen(7777);
   Serial.println("WebSocket Server listening on port 7777.");
 }
+
 
 // ------------------------------------------------------------
 // Main Loop

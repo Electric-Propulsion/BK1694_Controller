@@ -5,7 +5,7 @@ import json
 
 # Replace with the IP address of your ESP32.
 # If your ESP32 is at 192.168.1.45, for example, use "ws://192.168.1.45:81"
-esp32_ip = "192.168.1.85"
+esp32_ip = "192.168.0.156"
 ws_url = f"ws://{esp32_ip}:7777"
 
 async def set_value(value: int):
