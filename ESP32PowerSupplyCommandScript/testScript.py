@@ -5,6 +5,7 @@ async def main():
     # Call the imported functions
     await get_status()
     await enable(False)
+    # await set_value(0)
     await get_status()
 
 if __name__ == "__main__":

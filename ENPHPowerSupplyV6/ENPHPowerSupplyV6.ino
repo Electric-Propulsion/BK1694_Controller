@@ -34,6 +34,7 @@ static const int ENABLE_PIN = 15;  // Pin 15 to be controlled by the `enable` co
 
 // Holds the pot wiper value (0..255)
 int currentValue = 0;
+bool enableState = 0;
 
 // ------------------------------------------------------------
 // Initialize SPI and configure the MCP4151 CS pin as output.
@@ -121,10 +122,10 @@ void handleWebSocketClient(WebsocketsClient& client) {
       else if (strcmp(command, "enable") == 0) {
         // Expect a boolean "value" (true/false)
         if (jsonDoc.containsKey("value") && jsonDoc["value"].is<bool>()) {
-            bool enableState = jsonDoc["value"];
+            enableState = jsonDoc["value"];
 
             // Reverse logic: set Pin 15 LOW if enableState is true, HIGH if false
-            digitalWrite(ENABLE_PIN, enableState ? LOW : HIGH);
+            digitalWrite(ENABLE_PIN, enableState ? HIGH : LOW);
 
             // Respond
             StaticJsonDocument<100> response;
@@ -196,13 +197,13 @@ void setup() {
 
   // 2. Initialize ENABLE_PIN (independent from MCP4151)
   pinMode(ENABLE_PIN, OUTPUT);
-  digitalWrite(ENABLE_PIN, LOW);  // Set initial state to LOW (default disabled)
+  digitalWrite(ENABLE_PIN, enableState ? HIGH : LOW);  // Set initial state to LOW (default disabled)
 
   // 3. Initialize SPI + MCP4151
   initMCP4151();
 
   // Optional: Log the initial enable state
-  Serial.println("ENABLE_PIN initialized to LOW (default disabled)");
+  Serial.println("ENABLE_PIN initialized to HIGH (default disabled)");
 
   // 4. Start WebSocket server
   server.listen(7777);
